@@ -9,22 +9,34 @@ np.random.seed(13)
 LEARNING_RATE = 0.01
 EPOCH = 5
 
-input_neurons_count = 64 * 64
-hidden_neurons_count = 16
-output_neurons_count = 8
+#Number of input types
+input_neurons_count = 5
+#Number of layers wanted
+hidden_neurons_count = 10
+#Number of output types
+output_neurons_count = 1
 DATA_FILE = 'chrome.out'
 LOCAL = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 def read_dataset():
     #Read in as a 2D array 1048576 x 7
     #File must be in format f, f, f, f, f, f, f
-    #Will only need first 5 for this assignment
-    file_read = np.loadtxt(os.path.join(LOCAL, DATA_FILE), np.dtypes.Float16DType)
+    file_read = np.loadtxt(os.path.join(LOCAL, DATA_FILE))
     
-    #Split data, half to train and half to test
-    data_split = np.split(file_read, 2)
+    #Will only need 5 datapoints for this assignment
+    #Iterate over data, removing green and blue outputs
+    data_new = np.empty((len(file_read), 5))
+    for i in range(len(file_read)):
+        data_new[i] = file_read[i][:-2]
+    
+    #Split data, half to train and half to test, and standardize
+    data_split = np.split(data_new, 2)
     x_train = data_split[0]
-    x_test = data_split[1]
+    mean = np.mean(x_train)
+    stddev = np.std(x_train)
+    x_train = (x_train - mean) / stddev
+    x_test = (data_split[1] - mean) / stddev
+    
 
     #One-hot encode
     y_train = np.zeros((len(x_train), output_neurons_count))
@@ -33,14 +45,14 @@ def read_dataset():
     y_test[np.random.randint(len(y_test))][np.random.randint(output_neurons_count)] = 1
     return x_train, x_test, y_train, y_test
     
-x_train, y_train, x_test, y_test = read_dataset()
+x_train, x_test, y_train, y_test = read_dataset()
 index_list = list(range(len(x_train)))
 
 def neuron_w(neuron_count, input_count):
     weights = np.zeros((neuron_count, input_count + 1))
     for n in range(neuron_count):
         for i in range(1, (input_count + 1)):
-            weights[n][i] = np.random.uniform(-1.0, 1.0)
+            weights[n][i] = np.random.uniform(-0.1, 0.1)
     return weights
 
 hidden_weight = neuron_w(hidden_neurons_count, input_neurons_count)
