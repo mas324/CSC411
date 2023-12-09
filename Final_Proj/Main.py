@@ -1,36 +1,39 @@
 
-from cProfile import label
 import os
-import re
 from matplotlib import pyplot as plt
 import numpy as np
 
 np.random.seed(13)
-LEARNING_RATE = 1
+LEARNING_RATE = 0.1
 EPOCH = 20
 
 #Number of input types
-input_neurons_count = 7
+input_neurons_count = 3
 #Number of layers wanted
-hidden_neurons_count = 14
+hidden_neurons_count = 6
 #Number of output types
-output_neurons_count = 1
+output_neurons_count = 3
 DATA_FILE = 'chrome.out'
 LOCAL = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
 
 def read_dataset():
     #Read in as a 2D array 1048576 x 7
     #File must be in format f, f, f, f, f, f, f
-    file_read = np.loadtxt(os.path.join(LOCAL, DATA_FILE), np.dtypes.Float64DType)
+    file_read = np.loadtxt(os.path.join(LOCAL, DATA_FILE))
     
-    #Will only need 5 datapoints for this assignment
+    #Will only need 3 datapoints for this assignment
     #Iterate over data, removing green and blue outputs
-    data_new = np.empty((len(file_read), 7))
+    #Also compute the vectors of incident and existent
+    data_new = np.empty((len(file_read), 3))
     for i in range(len(file_read)):
-        data_new[i] = file_read[i]
+        data_new[i] = [file_read[i][0] * file_read[i][1],
+                       file_read[i][2] * file_read[i][3],
+                       file_read[i][4]]
     
     #Split data, half to train and half to test, and standardize
-    data_split = np.split(data_new, 16)
+    np.random.shuffle(data_new)
+    data_split = np.split(data_new, 2)
     x_train = data_split[0]
     mean = np.mean(x_train)
     stddev = np.std(x_train)
@@ -41,6 +44,22 @@ def read_dataset():
     #One-hot encode
     y_train = np.zeros((len(x_train), output_neurons_count))
     y_test = np.zeros((len(x_test), output_neurons_count))
+    for i in range(len(y_train)):
+        theta_in = np.pi / (np.random.randint(32) + 1)
+        phi_in = (np.pi * 2) / (np.random.randint(64) + 1)
+        theta_out = np.pi / (np.random.randint(32) + 1)
+        phi_out = (np.pi * 2) / (np.random.randint(64) + 1)
+        y_train[i][0] = theta_in * phi_in
+        y_train[i][1] = theta_out * phi_out
+        y_train[i][2] = 0.01
+    for i in range(len(y_test)):
+        theta_in = np.pi / (np.random.randint(32) + 1)
+        phi_in = (np.pi * 2) / (np.random.randint(64) + 1)
+        theta_out = np.pi / (np.random.randint(32) + 1)
+        phi_out = (np.pi * 2) / (np.random.randint(64) + 1)
+        y_test[i][0] = theta_in * phi_in
+        y_test[i][1] = theta_out * phi_out
+        y_test[i][2] = 0.01
     return x_train, x_test, y_train, y_test
     
 x_train, x_test, y_train, y_test = read_dataset()
@@ -50,7 +69,7 @@ def neuron_w(neuron_count, input_count):
     weights = np.zeros((neuron_count, input_count + 1))
     for n in range(neuron_count):
         for i in range(1, (input_count + 1)):
-            weights[n][i] = np.random.uniform(-0.001, 0.001)
+            weights[n][i] = np.random.uniform(-1.0, 1.0)
     return weights
 
 hidden_layer_w = neuron_w(hidden_neurons_count, input_neurons_count)
@@ -66,7 +85,7 @@ chart_y_train = []
 chart_y_test = []
 def show_learning(epoch, train, test):
     global chart_x, chart_y_train, chart_y_test
-    print('epoch:', epoch, ', training:', '%6.4f' % train, ', testing:', '%6.4f' % test)
+    print('epoch:', epoch, ', accuracy: training:', '%6.4f' % train, ', testing:', '%6.4f' % test)
     chart_x.append(epoch + 1)
     chart_y_train.append(1.0 - train)
     chart_y_test.append(1.0 - test)
@@ -146,7 +165,7 @@ for i in range(EPOCH):
     for j in index_list:
         x = np.concatenate((np.array([1.0]), x_train[j]))
         forward_pass(x)
-        if np.argmax(output_layer_y) == np.argmax(y_train[j]):
+        if output_layer_y.argmax() == y_train[j].argmax():
             correct_training += 1
         backward_pass(y_train[j])
         adjust_weights(x)
@@ -154,7 +173,7 @@ for i in range(EPOCH):
     for j in range(len(x_test)):
         x = np.concatenate((np.array([1.0]), x_test[j]))
         forward_pass(x)
-        if np.argmax(output_layer_y) == np.argmax(y_test[j]):
+        if output_layer_y.argmax() == y_test[j].argmax():
             correct_testing += 1
     show_learning(i, correct_training/len(x_train), correct_testing/len(x_test))
 plot_learning()
