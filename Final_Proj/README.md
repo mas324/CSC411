@@ -6,8 +6,10 @@
     - The dataset to use for this code. Possibly will not work with other datasets as the weights may differ
 3. pyplot.png
     - The image of network accuracy over time
+    - pyplot 01 is network learning rate of 0.01 while pyplot 05 is learning rate 0.05
 4. weights.txt
     - The final weights. Contains the weights of the hidden layer and output layer
+    - Similar to pyplots, 01 is for rate of 0.01 and 05 is rate 0.05
 5. presentation.ppt
     - Presentation of the code. To be read along with the video portion
 6. video.mp4

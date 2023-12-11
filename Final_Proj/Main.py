@@ -11,7 +11,7 @@ import numpy as np
 
 np.random.seed(13)
 LEARNING_RATE = 0.05
-EPOCH = 25
+EPOCH = 200
 
 # Number of inputs
 # theta in, phi in, theta out, phi out, red
@@ -183,7 +183,7 @@ for i in range(EPOCH):
             correct_testing += 1
     show_learning(i + 1, correct_training/len(x_train), correct_testing/len(x_test))
 plot_learning()
-with open("weights.txt", "a") as f:
+with open(os.path.join(LOCAL, 'weights.txt'), 'a') as f:
     print('hidden layer stats:\n', hidden_layer_w, hidden_layer_y, file=f)
     print('output layer stats:\n', output_layer_w, output_layer_y, file=f)
     print('\n\nLearning rate:', LEARNING_RATE, file=f)
