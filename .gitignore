@@ -161,3 +161,4 @@ cython_debug/
 
 LDL-main/
 .vscode
+*.png

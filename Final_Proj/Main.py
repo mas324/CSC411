@@ -10,21 +10,21 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 np.random.seed(13)
-LEARNING_RATE = 0.025
-EPOCH = 50
+LEARNING_RATE = 0.001
+EPOCH = 200
 
 # Number of inputs
-# theta in/out, phi in/out, red
-input_neurons_count = 5
+# theta in, phi in, theta out, phi out, red
+INPUT_NEURON_COUNT = 5
 # Number of hidden neurons
-hidden_neurons_count = 10
+HIDDEN_NEURON_COUNT = 8
 # Number of outputs
 # red
-output_neurons_count = 1
+OUTPUT_NEURON_COUNT = 1
 
 # Data to use, as well as an autopath to workaround 'file not found' error
 # when the file is in the same directory
-DATA_FILE = 'blue-rubber.out'
+DATA_FILE = 'blue-rubber.txt'
 LOCAL = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 def read_dataset():
@@ -32,17 +32,20 @@ def read_dataset():
     # File must be in format f, f, f, f, f, f, f
     file_read = np.loadtxt(os.path.join(LOCAL, DATA_FILE))
     
-    # Will only need 5 datapoints for this assignment (411 class)
-    # Clean data, removing green and blue outputs
-    data_new = np.empty((len(file_read), 5))
-    for i in range(len(file_read)):
-        data_new[i] = file_read[i][:-2]
+    # Shuffle the data
+    np.random.shuffle(file_read)
+    data_length = len(file_read)
     
-    # Shuffle and split data, half to train and half to test
-    np.random.shuffle(data_new)
-    data_split = np.split(data_new, 2)
-    x_train = data_split[0]
-    x_test = data_split[1]
+    # Will only need 5 inputs 1 output for this assignment (411 class)
+    # Organize and clean data, removing green and blue inputs
+    data_x = np.empty((data_length, 5))
+    data_y = np.empty(data_length)
+    for i in range(len(file_read)):
+        data_x[i] = file_read[i][:-2] # Ignore last 2 elements (green, blue)
+        data_y[i] = file_read[i][4] # Add red to output data
+        
+    # Split data, half to train and half to test
+    x_train, x_test = np.split(data_x, 2)
     
     # Standardize data
     mean = np.mean(x_train)
@@ -51,12 +54,7 @@ def read_dataset():
     x_test = (x_test - mean) / stddev
     
     # Create ground truths with red data
-    y_train = np.empty(len(data_split[0]))
-    for i in range(len(data_split[0])):
-        y_train[i] = data_split[0][i][4]
-    y_test = np.empty(len(data_split[1]))
-    for i in range(len(data_split[1])):
-        y_test[i] = data_split[1][i][4]
+    y_train, y_test = np.split(data_y, 2)
 
     return x_train, x_test, y_train, y_test
     
@@ -71,13 +69,13 @@ def neuron_w(neuron_count, input_count):
     return weights
 
 # Setup neurons/input per neuron
-hidden_layer_w = neuron_w(hidden_neurons_count, input_neurons_count)
-hidden_layer_y = np.zeros(hidden_neurons_count)
-hidden_layer_err = np.zeros(hidden_neurons_count)
+hidden_layer_w = neuron_w(HIDDEN_NEURON_COUNT, INPUT_NEURON_COUNT)
+hidden_layer_y = np.zeros(HIDDEN_NEURON_COUNT)
+hidden_layer_err = np.zeros(HIDDEN_NEURON_COUNT)
 
-output_layer_w = neuron_w(output_neurons_count, hidden_neurons_count)
-output_layer_y = np.zeros(output_neurons_count)
-output_layer_err = np.zeros(output_neurons_count)
+output_layer_w = neuron_w(OUTPUT_NEURON_COUNT, HIDDEN_NEURON_COUNT)
+output_layer_y = np.zeros(OUTPUT_NEURON_COUNT)
+output_layer_err = np.zeros(OUTPUT_NEURON_COUNT)
 
 # Show data and plot after complete
 chart_x = []
@@ -85,7 +83,8 @@ chart_y_train = []
 chart_y_test = []
 def show_learning(epoch, train, test):
     global chart_x, chart_y_train, chart_y_test
-    print('epoch:', epoch, ', training acc:', '%6.4f' % train, ', testing acc:', '%6.4f' % test)
+    print('epoch:', epoch, ', training acc:',
+          '%6.4f' % train, ', testing acc:', '%6.4f' % test)
     chart_x.append(epoch + 1)
     chart_y_train.append(1.0 - train)
     chart_y_test.append(1.0 - test)
@@ -98,8 +97,8 @@ def plot_learning():
     plt.ylabel('error')
     plt.title(('Learning rate:' + '%6.4f' % LEARNING_RATE))
     plt.legend()
+    plt.savefig(os.path.join(LOCAL, 'pyplot.png'))
     plt.show()
-    plt.savefig(os.path.join(LOCAL, 'picture.png'))
 
 def forward_pass(x):
     global hidden_layer_y, output_layer_y
@@ -170,7 +169,8 @@ for i in range(EPOCH):
         x = np.concatenate((np.array([1.0]), x_train[j]))
         forward_pass(x)
         # Tolerance of +-ACC_TOL
-        if ((output_layer_y > y_train[j] - ACC_TOLERANCE) and (output_layer_y < y_train[j] + ACC_TOLERANCE)):
+        if ((output_layer_y > y_train[j] - ACC_TOLERANCE)
+            and (output_layer_y < y_train[j] + ACC_TOLERANCE)):
             correct_training += 1
         backward_pass(y_train[j])
         adjust_weights(x)
@@ -178,10 +178,12 @@ for i in range(EPOCH):
     for j in range(len(x_test)):
         x = np.concatenate((np.array([1.0]), x_test[j]))
         forward_pass(x)
-        if ((output_layer_y > y_test[j] - ACC_TOLERANCE) and (output_layer_y < y_test[j] + ACC_TOLERANCE)):
+        if ((output_layer_y > y_test[j] - ACC_TOLERANCE)
+            and (output_layer_y < y_test[j] + ACC_TOLERANCE)):
             correct_testing += 1
     show_learning(i + 1, correct_training/len(x_train), correct_testing/len(x_test))
 plot_learning()
-print('hidden layer stats:', 'weights:%6.4f' % hidden_layer_w, '\nout:%6.4f' % hidden_layer_y)
-print('\noutput layer stats:', 'weights:%6.4f' % output_layer_w, '\nout:%6.4f' % output_layer_y)
-print('\n\nLearning rate:', LEARNING_RATE)
+with open("weights.txt", "a") as f:
+    print('hidden layer stats:\n', hidden_layer_w, hidden_layer_y, file=f)
+    print('output layer stats:\n', output_layer_w, output_layer_y, file=f)
+    print('\n\nLearning rate:', LEARNING_RATE)
